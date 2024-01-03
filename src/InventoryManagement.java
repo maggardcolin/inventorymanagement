@@ -1,8 +1,11 @@
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class InventoryManagement {
 
@@ -10,14 +13,12 @@ public class InventoryManagement {
   private int numberOfItems;
   private double sales;
   Scanner scnr;
-  private ArrayList<Integer> changelog;
 
   public InventoryManagement() {
     this.numberOfItems = 0;
     this.database = new ArrayList<Item>();
     this.sales = 0;
     this.scnr = new Scanner(System.in);
-    this.changelog = new ArrayList<Integer>();
   }
 
   public void menuLoop() {
@@ -69,8 +70,10 @@ public class InventoryManagement {
           break;
         case 3:
           sellItem();
+          break;
         case 4:
           removeItem();
+          break;
         case 5:
           valid = false;
           break;
@@ -87,37 +90,103 @@ public class InventoryManagement {
     int id = scnr.nextInt();
     scnr.nextLine();
     System.out.println("What is the price of the new item?");
-    double price = scnr.nextInt();
+    double price = scnr.nextDouble();
     scnr.nextLine();
     System.out.println("What is the quantity of the new item?");
     int quantity = scnr.nextInt();
     scnr.nextLine();
     this.database.add(new Item(name, id, price, quantity));
+    saveDatabase();
   }
 
   public void restock() {
     boolean valid = false;
     while (!valid) {
-      System.out.println("What is the id of the item you wish to restock?");
+      System.out.println("What is the id of the item you wish to restock? (0 to quit)");
       int id = scnr.nextInt();
       scnr.nextLine();
-      for (Item i: this.database) {
-        if 
+      if (id == 0) {
+        break;
+      }
+      for (Item i : this.database) {
+        if (i.id == id) {
+          System.out.println("How many more of this item have been added?");
+          int quantity = scnr.nextInt();
+          scnr.nextLine();
+          i.quantity += quantity;
+          valid = true;
+          saveDatabase();
+          break;
+        }
+      }
+      if (valid) {
+        break;
+      } else {
+        System.out.println("Invalid id, please try again.");
       }
     }
 
   }
 
   public void sellItem() {
-
+    boolean valid = false;
+    while (!valid) {
+      System.out.println("What is the id of the item you wish to sell? (0 to quit)");
+      int id = scnr.nextInt();
+      scnr.nextLine();
+      if (id == 0) {
+        break;
+      }
+      for (Item i : this.database) {
+        if (i.id == id) {
+          System.out.println("How many of this item have been sold?");
+          int quantity = scnr.nextInt();
+          scnr.nextLine();
+          i.quantity -= quantity;
+          this.sales += quantity * i.price;
+          valid = true;
+          saveDatabase();
+          break;
+        }
+      }
+      if (valid) {
+        break;
+      } else {
+        System.out.println("Invalid id, please try again.");
+      }
+    }
   }
 
   public void removeItem() {
-
+    boolean valid = false;
+    while (!valid) {
+      System.out.println("What is the id of the item you wish to remove items of? (0 to quit)");
+      int id = scnr.nextInt();
+      scnr.nextLine();
+      if (id == 0) {
+        break;
+      }
+      for (Item i : this.database) {
+        if (i.id == id) {
+          System.out.println("How many of this item have been removed?");
+          int quantity = scnr.nextInt();
+          scnr.nextLine();
+          i.quantity -= quantity;
+          valid = true;
+          saveDatabase();
+          break;
+        }
+      }
+      if (valid) {
+        break;
+      } else {
+        System.out.println("Invalid id, please try again.");
+      }
+    }
   }
 
   public void printInventory() {
-    System.out.println("Total sales: $" + this.sales);
+    System.out.println("Total sales: $" + String.format("%.2f", this.sales));
     for (Item item : this.database) {
       if (item.quantity > 0) {
         System.out.println(item.name + " (" + item.id + "), Price: $"
@@ -147,7 +216,31 @@ public class InventoryManagement {
   }
 
   public void saveDatabase() {
+    String fileName = "inventory.csv";
+    try {
+      boolean fileExists = new File(fileName).exists();
 
+      try (FileOutputStream overwrite = new FileOutputStream(fileName, false);
+          FileOutputStream append = new FileOutputStream(fileName, true);
+          DataOutputStream dataStream = new DataOutputStream(append)) {
+
+        byte[] headerBytes = "name,id,price,quantity\nsales:".getBytes();
+        overwrite.write(headerBytes);
+
+        dataStream.write(("" + this.sales + "\n").getBytes());
+
+        for (Item i : this.database) {
+          String output = i.name + "," + i.id + "," + i.price + "," + i.quantity + "\n";
+          append.write(output.getBytes());
+        }
+
+        System.out.println("Data overwritten in the file.");
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 
   public static void main(String[] args) {
