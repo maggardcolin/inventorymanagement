@@ -51,14 +51,36 @@ public class InventoryManagement {
   }
 
   public void searchInventory() {
-
+    boolean valid = false;
+    while (!valid) {
+      System.out.println("What is the id of the item you wish to search for? (0 to quit)");
+      int id = scnr.nextInt();
+      scnr.nextLine();
+      if (id == 0) {
+        break;
+      }
+      for (Item i : this.database) {
+        if (i.id == id) {
+          System.out.println(i.toFormattedString());
+          valid = true;
+          System.out.println("Press enter to continue.");
+          String s = scnr.nextLine();
+          break;
+        }
+      }
+      if (valid) {
+        break;
+      } else {
+        System.out.println("Invalid id, please try again.");
+      }
+    }
   }
 
   public void manageInventory() {
     boolean valid = true;
     while (valid) {
       System.out.println(
-          "What would you like to do?\n1: Add new item\n2: Restock item\n3: Item sold\n4: Remove item\n5: Back");
+          "What would you like to do?\n1: Add new item\n2: Restock item\n3: Item sold\n4: Remove item\n5: Sort inventory\n6: Back");
       int input = scnr.nextInt();
       scnr.nextLine();
       switch (input) {
@@ -75,6 +97,9 @@ public class InventoryManagement {
           removeItem();
           break;
         case 5:
+          sortInventory();
+          break;
+        case 6:
           valid = false;
           break;
         default:
@@ -189,8 +214,7 @@ public class InventoryManagement {
     System.out.println("Total sales: $" + String.format("%.2f", this.sales));
     for (Item item : this.database) {
       if (item.quantity > 0) {
-        System.out.println(item.name + " (" + item.id + "), Price: $"
-            + String.format("%.2f", item.price) + ", Quantity: " + item.quantity);
+        System.out.println(item.toFormattedString());
       }
     }
     System.out.println("Press enter to continue.");
@@ -198,20 +222,39 @@ public class InventoryManagement {
 
   }
 
-  public void sortInventory(int criteria) {
-    switch (criteria) {
-      case 0:
-        Collections.sort(this.database, (i1, i2) -> i1.name.compareTo(i2.name));
-        break;
-      case 1:
-        Collections.sort(this.database, (i1, i2) -> Integer.compare(i1.id, i2.id));
-        break;
-      case 2:
-        Collections.sort(this.database, (i1, i2) -> Double.compare(i1.price, i2.price));
-        break;
-      case 3:
-        Collections.sort(this.database, (i1, i2) -> Integer.compare(i1.quantity, i2.quantity));
-        break;
+  public void sortInventory() {
+    System.out.println("Sort by what? (0 to quit):\n1: Name\n2: Id number\n3: Price\n4: Quantity");
+    boolean valid = false;
+    int criteria = scnr.nextInt();
+    scnr.nextLine();
+    while (!valid) {
+      switch (criteria) {
+        case 0:
+          valid = true;
+          break;
+        case 1:
+          Collections.sort(this.database, (i1, i2) -> i1.name.compareTo(i2.name));
+          valid = true;
+          saveDatabase();
+          break;
+        case 2:
+          Collections.sort(this.database, (i1, i2) -> Integer.compare(i1.id, i2.id));
+          valid = true;
+          saveDatabase();
+          break;
+        case 3:
+          Collections.sort(this.database, (i1, i2) -> Double.compare(i1.price, i2.price));
+          valid = true;
+          saveDatabase();
+          break;
+        case 4:
+          Collections.sort(this.database, (i1, i2) -> Integer.compare(i2.quantity, i1.quantity));
+          valid = true;
+          saveDatabase();
+          break;
+        default:
+          break;
+      }
     }
   }
 
@@ -227,10 +270,11 @@ public class InventoryManagement {
         byte[] headerBytes = "name,id,price,quantity\nsales:".getBytes();
         overwrite.write(headerBytes);
 
-        dataStream.write(("" + this.sales + "\n").getBytes());
+        dataStream.write(("" + String.format("%.2f", this.sales) + "\n").getBytes());
 
         for (Item i : this.database) {
-          String output = i.name + "," + i.id + "," + i.price + "," + i.quantity + "\n";
+          String output =
+              i.name + "," + i.id + "," + String.format("%.2f", i.price) + "," + i.quantity + "\n";
           append.write(output.getBytes());
         }
 
@@ -281,5 +325,12 @@ class Item {
     this.id = id;
     this.price = price;
     this.quantity = quantity;
+  }
+
+  public String toFormattedString() {
+    String output = "";
+    output += this.name + " (id: " + this.id + "), Price: $" + String.format("%.2f", this.price)
+        + ", Quantity: " + this.quantity;
+    return output;
   }
 }
